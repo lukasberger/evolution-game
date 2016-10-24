@@ -1,0 +1,38 @@
+[
+  [
+    [["id", 1],
+      ["species", []],
+      ["bag", 0]],
+    [["id", 2],
+       ["species", []],
+      ["bag", 0]],
+    [["id", 3],
+      ["species", []],
+      ["bag", 0]]
+  ],
+  0,
+  [
+    [-3, "horns"],
+    [3, "fat-tissue"],
+    [-8, "carnivore"],
+    [-6, "carnivore"],
+    [-4, "carnivore"],
+    [-2, "carnivore"],
+    [0, "carnivore"],
+    [2, "carnivore"],
+    [4, "carnivore"],
+    [6, "carnivore"],
+    [8, "carnivore"],
+    [1, "carnivore"],
+    [1, "scavenger"],
+    [-1, "scavenger"],
+    [2, "scavenger"],
+    [-2, "scavenger"],
+    [3, "scavenger"],
+    [-3, "scavenger"],
+    [-3, "hard-shell"],
+    [3, "hard-shell"],
+    [-1, "herding"],
+    [1, "herding"]
+  ]
+]

@@ -1,0 +1,18 @@
+.idea/
+bin/
+out/
+__pycache__/
+*.iml
+*.py[cdo]
+*.swp
+.coverage
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

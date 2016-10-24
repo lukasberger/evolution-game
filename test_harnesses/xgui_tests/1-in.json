@@ -1,0 +1,97 @@
+[
+  [
+    [["id", 1],
+      ["species", [
+        [
+          ["food", 1],
+          ["body", 1],
+          ["population", 1],
+          ["traits", ["carnivore"]]
+        ],
+        [
+          ["food", 1],
+          ["body", 1],
+          ["population", 1],
+          ["traits", ["cooperation"]]
+        ],
+        [
+          ["food", 1],
+          ["body", 1],
+          ["population", 1],
+          ["traits", ["horns"]]
+        ]
+      ]],
+      ["bag", 10],
+      ["cards", 
+        [
+          [-8, "carnivore"],
+          [-6, "carnivore"],
+          [-4, "carnivore"],
+          [-2, "carnivore"],
+          [0, "carnivore"],
+          [2, "carnivore"],
+          [4, "carnivore"],
+          [6, "carnivore"],
+          [8, "carnivore"],
+          [1, "carnivore"]
+        ]
+      ]],
+    [["id", 2],
+       ["species", [
+        [
+          ["food", 2],
+          ["body", 2],
+          ["population", 2],
+          ["traits", ["long-neck"]]
+        ],
+        [
+          ["food", 2],
+          ["body", 2],
+          ["population", 2],
+          ["traits", ["horns"]]
+        ],
+        [
+          ["food", 2],
+          ["body", 2],
+          ["population", 2],
+          ["traits", ["symbiosis"]]
+        ]
+      ]],
+      ["bag", 4],
+      ["cards", 
+        [
+          [1, "scavenger"],
+          [-1, "scavenger"],
+          [2, "scavenger"],
+          [-2, "scavenger"],
+          [3, "scavenger"],
+          [-3, "scavenger"],
+          [-3, "hard-shell"],
+          [3, "hard-shell"],
+          [-1, "herding"],
+          [1, "herding"]
+        ]
+      ]],
+    [["id", 3],
+      ["species", [
+        [
+          ["food", 3],
+          ["body", 3],
+          ["population", 3],
+          ["traits", ["pack-hunting"]]
+        ],
+        [
+          ["food", 1],
+          ["body", 1],
+          ["population", 1],
+          ["traits", []]
+        ]
+      ]],
+      ["bag", 2]]
+  ],
+  6,
+  [
+    [1, "symbiosis"],
+    [-1, "burrowing"]
+  ]
+]

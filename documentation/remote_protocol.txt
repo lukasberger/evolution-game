@@ -1,0 +1,291 @@
+  _____                      _         _____           _                  _ 
+ |  __ \                    | |       |  __ \         | |                | |
+ | |__) |___ _ __ ___   ___ | |_ ___  | |__) | __ ___ | |_ ___   ___ ___ | |
+ |  _  // _ \ '_ ` _ \ / _ \| __/ _ \ |  ___/ '__/ _ \| __/ _ \ / __/ _ \| |
+ | | \ \  __/ | | | | | (_) | ||  __/ | |   | | | (_) | || (_) | (_| (_) | |
+ |_|  \_\___|_| |_| |_|\___/ \__\___| |_|   |_|  \___/ \__\___/ \___\___/|_|
+                                                                            
+                                                                            
+
+The remote protocol for external players in different processes or on a
+distributed network consist of five pieces: (0) the sign-up phase, (1) the
+start-up phase, (2) the beginning of a turn (step 1), (3) the request to
+players to choose actions with their cards (steps 2 and 3), and (4) the
+question to players to pick the next action during the feeding cycle. The last
+four correspond to the four steps of the API; the first one sets up the
+connections.
+
+  ___ _                       
+ / __(_)__ _ _ _    _  _ _ __ 
+ \__ \ / _` | ' \  | || | '_ \
+ |___/_\__, |_||_|  \_,_| .__/
+       |___/            |_|   
+
+A server awaits TCP connection and then accepts one JSON string from the
+client. It responds with an OK message. The remote sign-up process continues
+until at least three players have signed up and at most eight or a certain
+period of time has passed. Sign-ups that arrive after the game has started are
+ignored.
+
+                     +---------------+
+     +--------+      | remote site 1 |
+     | server |      +---------------+
+     +--------+          |
+         |               |
+         |  TCP connect  |
+         | <============ |
+         |               |
+         |  r1 = sign-up(info)
+         | <~~~~~~~~~~~- |
+         |               |
+         |  return(ok)   |
+         | ============> |
+         |               |
+         | p1 = new(r1)        +--------------+
+         | ------------------> | proxy-player |
+         |                     +--------------+
+         |               |                |
+        ...             ...              ... (A)
+         |               |                |
+         |               |                |
+-------------------------------------------- start
+         |               |                |
+         |               |                |
+         |               |   sign-up      |  +---------------+
+         | <~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ | remote site N |
+         |               |                |  +---------------+
+ 
+info ~ any JSON string the client wishes to send
+ok   ~ "ok"
+
+Figure 5: Sign-up, server side
+
+
++-------------+
+| remote-main |
++-------------+
+       |
+       | p = new()                      +--------+
+       | ------------------------------>| player |
+       |                                +--------+
+       |                                     |
+       | new(p)     +--------------+         |
+       | ---------> | proxy-dealer |         |
+       |            +--------------+         |
+       &                  |                  | (A)
+         signUp(info)     |                  |
+<~~~~~~~~~~~~~~~~~~~~~~~~ |                  |
+                          |                  |
+ 
+(A) You could terminate 'remote-main' here.
+Figure 6: Sign-up, client side
+Start Up
+
+The server creates a dealer and hands it the proxy players instead of the
+actual players. Because these proxies live up to the same interface as proper
+players, the dealer does not notice a difference—other than a performance
+difference.
+
+  _____              _   ___ _              _ 
+ |_   _|  _ _ _ _ _ (_) / __| |_ ___ _ __  / |
+   | || || | '_| ' \ _  \__ \  _/ -_) '_ \ | |
+   |_| \_,_|_| |_||_(_) |___/\__\___| .__/ |_|
+                                    |_|       
+
+The dealer hands each external player the necessary pieces at the beginning of
+a turn: a species board (if needed) and additional cards to play the turn.
+
+ +--------+   +------+   +------+  +------+  +----------+
+ | dealer |   | py 1 |   | py 2 |  | pd 1 |  | player 1 |
+ +--------+   +------+   +------+  +------+  +----------+
+     |             |          |          |            |
+     | start(w)    |          |          |            |
+     |-----------> | start(v) |          |            |
+     |             |~~~~~~~~~~~~~~~~~~~> |start(w)    |
+     |             |          |          |----------> |
+     |             |          |          |            |
+     |             |          |          |            |
+     | start(w)    |          |          |            |
+     |----------------------> |start(v)  |            |
+     |             |          |~~~~~~~~~~~~~~~~~~~~~~~~~> site2
+     |             |          |          |             |
+     |             |          |          |             |
+ 
+py ~ proxy player
+pd ~ proxy dealer
+ 
+w ~ current state of self and the watering hole
+v ~ w in JSON: [Natural,Natural,[Species+, ..., Species+], Cards]
+ 
+Notice the additional first field in the array.
+
+Figure 7: Launching a turn
+
+
+  _____              _   ___ _                 ___                _   ____
+ |_   _|  _ _ _ _ _ (_) / __| |_ ___ _ __ ___ |_  )  __ _ _ _  __| | |__ /
+   | || || | '_| ' \ _  \__ \  _/ -_) '_ (_-<  / /  / _` | ' \/ _` |  |_ \
+   |_| \_,_|_| |_||_(_) |___/\__\___| .__/__/ /___| \__,_|_||_\__,_| |___/
+                                    |_|                                   
+
+The dealer asks the players how they wish to use their cards. With this request
+the dealer reveals some knowledge about the other players, including the order
+in which they will take the turn.
+
+ +--------+   +------+   +------+  +------+  +----------+
+ | dealer |   | py 1 |   | py 2 |  | pd 1 |  | player 1 |
+ +--------+   +------+   +------+  +------+  +----------+
+     |             |         |         |             |
+     | choose(c,d) |         |         |             |
+     |-----------> | choose(cj+dj)     |             |
+     |             |~~~~~~~~~~~~~~~~~> | choose(c,d) |
+     |             |         |         |-----------> |
+     |             |         |         |             |
+     |             |         |         |  return(r)  |
+     |             |      return(rj)   | <===========|
+     |  return(r)  | <~~~~~~~~~~~~~~~~ |             |
+     | <========== |         |         |             |
+    ...           ...       ...       ...           ...
+     |             |         |         |             |
+ 
+c ~ the state of all players that precede this one for the turn
+    turn minus their cards and food in bag
+d ~ the state of all players that come after this one for the
+    turn minus their cards and food in bag
+ 
+r ~ a representation of the following choices:
+    -- the food card required (step 2)
+    -- the card exchanges for (step 3):
+       -- growing the populations of species boards
+       -- growing the bodies of species boards
+       -- adding new species board (to the right)
+       -- replacing traits of existing species boards
+ 
+cj+dj ~ c,d in JSON : [LOB,LOB]
+rj ~ r in JSON : Action4
+
+Figure 8: Asking for card actions
+
+
+  _____              _   ___ _              _ _  
+ |_   _|  _ _ _ _ _ (_) / __| |_ ___ _ __  | | | 
+   | || || | '_| ' \ _  \__ \  _/ -_) '_ \ |_  _|
+   |_| \_,_|_| |_||_(_) |___/\__\___| .__/   |_| 
+                                    |_|          
+
+The dealer executes the choices that the players made and then runs the feeding
+phase of the turn. For the latter, it will interact with the external players
+as needed.
+
+ +--------+   +------+   +------+  +------+  +----------+
+ | dealer |   | py 1 |   | py 2 |  | pd 1 |  | player 1 |
+ +--------+   +------+   +------+  +------+  +----------+
+     |             |        |         |             |
+     |             |        |         |             |
+  feeding()        |        |         |             |
+ +-- |             |        |         |             |
+ |   | feedNext(ys)|        |         |             |
+ |   |-----------> | feedNext(zs)     |             |
+ |   |             | ~~~~~~~~~~~~~~~~>| feedNext(ys)|
+ |   |             |        |         |-----------> |
+ |   |             |        |         |             |
+ |   |             |        |         |  return(fc) |
+ |   |             |       return(gc) | <===========|
+ |   |  return(fc) | <~~~~~~~~~~~~~~~~|             |
+ |   | <===========|        |         |             |
+ |   |             |        |         |             |
+... ...           ...      ...        ...          ...
+ |   |             |        |         |             |
+ +-> |             |        |         |             |
+     |             |        |         |             |
+ 
+ys ~ the dealer's current knowledge of the watering hole and
+     the players in attackable order [all playes starting from
+     current, in turn order]
+     + the player's current state (bag, cards, species)
+fc ~ food choice (what to eat next)
+ 
+zs ~ ys in JSON : State
+gc ~ fc in JSON : FeedingChoice
+
+Figure 9: The feeding step
+
+
+     _ ___  ___  _  _   ___              _  __ _         _   _             
+  _ | / __|/ _ \| \| | / __|_ __  ___ __(_)/ _(_)__ __ _| |_(_)___ _ _  ___
+ | || \__ \ (_) | .` | \__ \ '_ \/ -_) _| |  _| / _/ _` |  _| / _ \ ' \(_-<
+  \__/|___/\___/|_|\_| |___/ .__/\___\__|_|_| |_\__\__,_|\__|_\___/_||_/__/
+                           |_|                                             
+
+
+A State is [Natural, [Species+, ..., Species+], Cards, Natural+, LOB].
+
+Interpretation A State represents the player’s complete current state and the
+public state of the competitors. Specifically, [bg,bd,c,w,others] consists of
+the player’s current bag, the current species boards, the current cards, the
+number of available food tokens, and the species boards of all other players
+(in turn order).
+
+A Trait is one of: "carnivore", "ambush", "burrowing", "climbing",
+"cooperation", "fat-tissue", "fertile", "foraging", "hard-shell", "herding",
+"horns", "long-neck", "pack-hunting", "scavenger", "symbiosis", or
+"warning-call".
+
+A Natural is a natural number
+A Natural+ is a Natural greater than 0
+A Nat is a natural number between 0 and 7 inclusive
+A Nat+ is a Nat greater than 0
+
+A Card is [FoodValue, Trait] *
+A FoodValue is a JSON number interpretable as an integer
+between -8 and 8 (inclusive).
+ * The JSON array must match one of the game cards allowed according to the specifications of Evolution.
+
+A LOB is [Boards, ..., Boards].
+
+A Boards is [Species+,...,Species+].
+
+A Species is
+    [["food",Nat],
+     ["body",Nat],
+     ["population",Nat+],
+     ["traits",LOT]]
+ 
+
+A Species+ is one of:
+    a regular Species
+    a Species with a "fat-food" field:
+        [["food",Nat],
+         ["body",Nat],
+         ["population",Nat+],
+         ["traits",LOT]
+         ["fat-food" ,Nat]]
+
+A LOT is one of:
+    []
+    [Trait]
+    [Trait,Trait]
+    [Trait,Trait,Trait]
+
+A Cards is [Card, ..., Card].
+
+An Action4 is [Natural, [GP, ...], [GB, ...], [BT, ...], [RT, ...]].
+
+A GP is [Natural, Natural].
+A GB is [Natural, Natural].
+A BT is one of:
+    [Natural]
+    [Natural, Natural]
+    [Natural, Natural, Natural]
+    [Natural, Natural, Natural, Natural]
+An RT is [Natural, Natural, Natural].
+
+A FeedingChoice is one of:
+    VegetarianChoice
+    FatTissueChoice
+    CarnivoreChoice
+    false
+
+A VegetarianChoice is a Natural.
+A FatTissueChoice is a [Natural, Nat+].
+A CarnivoreChoice is [Natural, Natural, Natural].
